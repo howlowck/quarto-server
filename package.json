@@ -1,5 +1,5 @@
 {
-  "name": "quarto",
+  "name": "quarto-server",
   "version": "0.1.0",
   "description": "a quarto server for a quarto game",
   "contributors": [
@@ -16,6 +16,12 @@
     "shortid": "~2.0.0",
     "underscore": "~1.5.2"
   },
-  "devDependencies": {
+  "devDependencies": {},
+  "subdomain": "howlowck-quarto-server",
+  "scripts": {
+    "start": "node server"
+  },
+  "engines": {
+    "node": "0.10.x"
   }
 }
