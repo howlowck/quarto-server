@@ -1,39 +1,47 @@
 var Player = require('./playerModel');
+var Board = require('./boardModel');
 var _ = require('underscore');
 
 var Game = function (attr) {
     this.attributes = {};
     this.players = {};
-    this.spaces = {};
     this.currentPlayer = null;
     this.otherPlayer = null;
+    this.board = {};
     return this.initialize(attr);
 };
 
 var prototype = {
     defaults: {
-        id: null
+        id: null,
+        waiting: false
     },
-
     initialize: function (attr) {
         _.extend(this.attributes, this.defaults, attr);
+        this.board = new Board();
         return this;
     },
 
     get: function (attr) {
         return this.attributes[attr];
     },
-
+    set: function (prop, value) {
+        this.attributes[prop] = value;
+    },
     addPlayer: function (attr) {
         var shouldInGame = ! this.enoughPlayers();
         attr['inGame'] = shouldInGame;
         var player = new Player(attr);
         this.players[attr.socket] = new Player(attr);
-//        console.log('added ' + player.get('name') + ' as ' + player.get('socket') + ' to server!!!!');
+        this.updateWaiting();
         return player;
     },
+    updateWaiting: function () {
+        if (this.enoughPlayers()) {
+            this.set('waiting', false);
+        }
+    },
     removePlayer: function (socketId) {
-//        console.log('DELETING Player: ' + this.players[socketId].get('name'));
         delete this.players[socketId];
     },
     enoughPlayers: function () {
@@ -72,16 +80,24 @@ var prototype = {
     exportPlayers: function() {
         var results = [];
         for (prop in this.players) {
-//            console.log('here is the property: ' + prop + ' value: ' + this.players[prop].export()['socket']);
             results.push(this.players[prop].export());
         }
         return results;
+    },
+    exportBoard: function () {
+        return this.board.export();
     },
     isGameReady: function () {
         if (this.enoughPlayers()) {
             return true;
         }
         return false;
+    },
+    updateBoard: function (piece, space) {
+        this.board.setSpace(space, piece);
+    },
+    newMove: function () {
+        this.board.newMove();
     }
 }
 

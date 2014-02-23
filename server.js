@@ -1,9 +1,7 @@
 var io = require('socket.io'),
     connect = require('connect'),
-    shortId = require('shortid'),
     GameServer = require('./server/gameServer'),
-    http = require('http');
-    fs = require('fs');
+    _ = require('underscore');
 
 var port = process.env.PORT || 2060;
 
@@ -12,46 +10,34 @@ console.log('port: ' + port);
 var app = connect().listen(port);
 var quarto = io.listen(app, {log: true});
 
-var request = function (req, res) {
-    res.writeHead(200);
-    res.write(html);
-}
-
 var games = {};
 
 //TODO: check player name already exists
 
-
-
 quarto.sockets.on('connection', function (socket) {
-    var gid;
+    var gid = null;
+    socket.emit('connected', {message: 'you are connected'});
 
-    socket.emit('connected', {message: 'you were connected'});
-
-    socket.on('getId', function getId () {
-        socket.emit('gotId', shortId.generate());
+    socket.on('matchPlayer', function matchPlayer () {
+        gameId = GameServer.findWaitingGame();
+        if (gameId) {
+            socket.emit('gotId', {id: gameId});
+        } else {
+            socket.emit('gotId', {id: GameServer.generateId(), foundPlayer: false});
+        }
     });
 
-    socket.on('register', function register (gameId) {
-        var message = 'Joining a game';
-        gid = gameId;
-        var game = GameServer.getGame(gameId);
-        if ( typeof game == 'undefined' ) {
-            GameServer.newGame({id:gameId});
-            message = 'new game';
-            socket.emit('registered', {message: message, players: [], socket: socket.id});
-        } else {
-            players = game.exportPlayers();
-//            console.log(players);
-            socket.emit('registered', {message: message, players: players, socket: socket.id});
-        }
+    socket.on('getId', function getId () {
+        socket.emit('gotId', {id: GameServer.generateId()});
+    });
 
-        socket.join(gameId);
-
+    socket.on('register', function register (data) {
+        registerGame(data, socket);
     });
 
     socket.on('newPlayer', function newPlayer (userData) {
         var game = getGame(socket);
+        gid = game.get('id');
         var player = game.addPlayer({socket: socket.id, name: userData.name}).export();
 //        console.log('hey! player ' + player['socket'] + ' ' + player['name'] + ' was added yo!');
 //        console.log('-----------------------------');
@@ -59,6 +45,7 @@ quarto.sockets.on('connection', function (socket) {
         socket.broadcast.to(gid).emit('playerJoined', {player: player, self: false});
         if (game.isGameReady()) {
             player = game.getStartPlayer();
+            game.inProgress = true;
             quarto.sockets.in(gid).emit('pickedStartPlayer', {player: player.export()});
         }
     });
@@ -71,6 +58,10 @@ quarto.sockets.on('connection', function (socket) {
     });
 
     socket.on('dropPiece', function (data) {
+        // {piece, space}
+        var game = getGame(socket);
+        game.updateBoard(data.piece, data.space);
+        console.log(game.board.export());
         socket.broadcast.to(gid).emit('droppedPiece', data);
     });
 
@@ -79,15 +70,22 @@ quarto.sockets.on('connection', function (socket) {
     });
 
     socket.on('nextMove', function (data) {
-        getGame(socket).switchCurrentPlayer();
+        var game = getGame(socket);
+
+        game.switchCurrentPlayer();
+        game.newMove();
         var player = getGame(socket).getCurrentPlayer();
         quarto.sockets.in(gid).emit('nextMove', {player: player.export()});
     });
 
     socket.on('disconnect', function disconnect () {
-        var player= getGame(socket).players[socket.id];
-//        console.log('this is the player ready to delete: ' + player.get('name'));
+        var game = getGame(socket),
+            player= getGame(socket).players[socket.id];
         getGame(socket).removePlayer(socket.id);
+        if (_.isEmpty(game.players)) {
+            console.log('NO MORE PLAYERS!!');
+            GameServer.destroyGame(gid);
+        }
         socket.leave(gid);
         quarto.sockets.in(gid).emit('exit', {message: 'A player left', player: player.export()});
     });
@@ -100,4 +98,28 @@ function getGame(socket) {
             return GameServer.getGame(prop.replace('/', ''));
         }
     }
+}
+
+function registerGame(data, socket) {
+    var message = 'Joining a game';
+    var game = GameServer.getGame(data.gameid);
+    if ( typeof game == 'undefined' ) {
+        GameServer.newGame({id: data.gameid, waiting: data.waiting});
+        message = 'new game';
+        socket.emit('registered', {message: message, players: [], socket: socket.id});
+    } else if (game.inProgress) {
+        message = 'Watching a game in progress';
+        players = game.exportPlayers();
+        socket.emit('registered', {message: message, players: players, board: game.exportBoard()})
+    } else {
+        players = game.exportPlayers();
+        socket.emit('registered', {message: message, players: players, socket: socket.id});
+    }
+
+    socket.join(data.gameid);
+}
+
+function getGameId(socket) {
+    var game = getGame(socket);
+    return game.get('id');
 }
