@@ -50,6 +50,12 @@ quarto.sockets.on('connection', function (socket) {
         }
     });
 
+    socket.on('message', function message(data) {
+        var player= getGame(socket).players[socket.id];
+       data['name'] = player.get('name');
+       quarto.sockets.in(gid).emit('message', data);
+    });
+
     socket.on('dragPiece', function draggingPiece (data) {
         socket.broadcast.to(gid).emit('draggedPiece', data);
     });
