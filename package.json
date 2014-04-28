@@ -1,6 +1,6 @@
 {
   "name": "quarto-server",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "a quarto server for a quarto game",
   "contributors": [
     {
