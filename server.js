@@ -7,7 +7,12 @@ var port = process.env.PORT || 2060;
 
 console.log('port: ' + port);
 
-var app = connect().listen(port);
+var serve = connect().use(function(req, res) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET,PUT,POST");
+});
+
+var app = serve.listen(port);
 var quarto = io.listen(app, {log: true});
 
 var games = {};
