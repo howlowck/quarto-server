@@ -8,7 +8,7 @@ var port = process.env.PORT || 2060;
 console.log('port: ' + port);
 
 var serve = connect().use(function(req, res) {
-    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Origin", "lifeishao.com");
     res.setHeader("Access-Control-Allow-Methods", "GET,PUT,POST");
 });
 
