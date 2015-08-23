@@ -3,7 +3,8 @@ var io = require('socket.io'),
     GameServer = require('./server/gameServer'),
     _ = require('underscore');
 
-var port = process.env.PORT || 2060;
+var port = process.env.OPENSHIFT_NODEJS_PORT || process.env.PORT || 2060;
+var ip = process.env.OPENSHIFT_NODEJS_IP || "127.0.0.1";
 
 console.log('port: ' + port);
 
@@ -12,7 +13,7 @@ var serve = connect().use(function(req, res) {
     res.setHeader("Access-Control-Allow-Methods", "GET,PUT,POST");
 });
 
-var app = serve.listen(port);
+var app = serve.listen(port, ip);
 var quarto = io.listen(app, {log: true});
 
 var games = {};
