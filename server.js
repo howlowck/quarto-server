@@ -4,7 +4,7 @@ var io = require('socket.io'),
     _ = require('underscore');
 
 var port = process.env.OPENSHIFT_NODEJS_PORT || process.env.PORT || 2060;
-var ip = process.env.OPENSHIFT_NODEJS_IP || "127.0.0.1";
+var ip = process.env.OPENSHIFT_NODEJS_IP || process.env.IP || "0.0.0.0";
 
 console.log('port: ' + port);
 
