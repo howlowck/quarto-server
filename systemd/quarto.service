@@ -6,7 +6,7 @@ After=network.target
 [Service]
 Type=simple
 User=forge
-ExecStart=/usr/bin/node /home/forge/hello_env.js
+ExecStart=/usr/bin/node /home/forge/quarto-server/server.js
 Restart=on-failure
 
 [Install]
